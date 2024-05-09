@@ -1,0 +1,31 @@
+@startuml
+
+actor Client as c
+participant Wallet as w
+participant Stripe as s
+participant "Message Broker" as mb
+
+c->w: topup with card
+activate w
+w->w: create movement in PENDING
+
+w-->mb: pending movement created
+w->c: pending
+deactivate w
+c->c: wait
+mb-->w: pending movement created
+activate w
+w->s: charge
+s->w:
+group #LightGreen Transactional
+alt success
+w->w: mark movement as SUCCEEDED
+note over w: uses optimistic locking
+w->w: update balance
+else failure
+w->w: mark movement as FAILED
+end
+end
+w-->c: notify
+deactivate w
+@enduml
