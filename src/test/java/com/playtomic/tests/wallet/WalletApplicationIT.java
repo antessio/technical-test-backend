@@ -64,6 +64,27 @@ public class WalletApplicationIT {
 	}
 
 	@Test
+	void shouldReturnWalletFound() throws Exception {
+		// given
+		long expectedBalance = 3000L;
+		WalletId walletId = aWalletWithBalance(expectedBalance);
+
+		// when
+		ResultActions result = mvc.perform(get("/wallet/" + walletId.id())
+												   .contentType("application/json"));
+
+		// then
+		result
+				.andExpect(status().isOk())
+				.andExpect(content().json("{'id':  '" + walletId.id() + "', 'balanceAmountUnit':  " + expectedBalance + "}"));
+	}
+
+	@Test
+	void shouldReturnWalletNotFound() {
+
+	}
+
+	@Test
 	public void shouldReturnHTTP423IfLocked() throws Exception {
 		// given
 		Instant now = Instant.now();
