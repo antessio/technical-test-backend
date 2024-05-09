@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import com.playtomic.tests.wallet.service.domain.Lock;
 import com.playtomic.tests.wallet.service.domain.WalletId;
+import com.playtomic.tests.wallet.service.domain.WalletLockException;
 
 @Service
 public class WalletLockService {
@@ -26,9 +27,9 @@ public class WalletLockService {
                                                .map(l -> l.getExpiresAt().isAfter(now))
                                                .orElse(false);
         if (isLocked) {
-            throw new IllegalStateException("%s is locked".formatted(walletId.id()));
+            throw new WalletLockException("%s is locked".formatted(walletId.id()));
         }
-        walletLockRepository.upsertLock(new Lock(
+        walletLockRepository.insertLock(new Lock(
                 lockName,
                 now.plus(LOCK_EXPIRATION)
         ));

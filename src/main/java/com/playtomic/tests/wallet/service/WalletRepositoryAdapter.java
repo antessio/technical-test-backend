@@ -19,7 +19,7 @@ public class WalletRepositoryAdapter implements WalletRepository{
 
     @Override
     public void insertWallet(Wallet wallet) {
-
+        walletRepository.save(new WalletEntity(wallet.getId().id(), wallet.getBalanceAmountUnit()));
     }
 
     @Override

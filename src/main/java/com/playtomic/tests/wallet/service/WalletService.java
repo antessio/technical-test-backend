@@ -7,10 +7,12 @@ import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
-import com.playtomic.tests.wallet.service.domain.CreditCard;
+import com.playtomic.tests.wallet.service.domain.PaymentProviderBadRequestException;
+import com.playtomic.tests.wallet.service.domain.PaymentProviderException;
 import com.playtomic.tests.wallet.service.domain.Wallet;
 import com.playtomic.tests.wallet.service.domain.WalletId;
 import com.playtomic.tests.wallet.service.domain.WalletTopUpCommand;
+import com.playtomic.tests.wallet.service.stripe.StripeAmountTooSmallException;
 import com.playtomic.tests.wallet.service.stripe.StripeService;
 import com.playtomic.tests.wallet.service.stripe.StripeServiceException;
 
@@ -44,32 +46,30 @@ public class WalletService {
         walletRepository.insertWallet(wallet);
         return wallet;
     }
-    public void topUpWallet(WalletTopUpCommand walletTopUpCommand) {
-        Wallet wallet = getWallet(walletTopUpCommand.walletId())
+    public void topUpWallet(WalletId walletId, WalletTopUpCommand walletTopUpCommand) {
+        Wallet wallet = getWallet(walletId)
                 .orElseThrow(() -> new IllegalArgumentException("wallet must exist"));
         // lock the wallet
         walletLockService.lock(wallet.getId());
-        boolean charged = chargeOnExternalProvider(walletTopUpCommand);
-        if (charged) {
-            updateWalletBalance(wallet, walletTopUpCommand.monetaryAmount().amountUnit());
+        try {
+            chargeOnExternalProvider(walletTopUpCommand);
+            updateWalletBalance(wallet, walletTopUpCommand.amountUnit());
+        } finally {
+            // unlock the wallet
+            walletLockService.unlock(wallet.getId());
         }
-        // unlock the wallet
-        walletLockService.unlock(wallet.getId());
     }
 
-    private boolean chargeOnExternalProvider(WalletTopUpCommand walletTopUpCommand) {
-        if (walletTopUpCommand.paymentMethod() instanceof CreditCard creditCard) {
+    private void chargeOnExternalProvider(WalletTopUpCommand walletTopUpCommand) {
             try {
                 stripeService.charge(
-                        creditCard.getCardNumber(),
-                        new BigDecimal(walletTopUpCommand.monetaryAmount().amountUnit()).divide(new BigDecimal(100), RoundingMode.UNNECESSARY));
-                return true;
+                        walletTopUpCommand.creditCardNumber(),
+                        new BigDecimal(walletTopUpCommand.amountUnit()).divide(new BigDecimal(100), RoundingMode.UNNECESSARY));
+            } catch (StripeAmountTooSmallException e) {
+                throw new PaymentProviderBadRequestException("top-up amount is too small", e);
             } catch (StripeServiceException e) {
-                return false;
+                throw new PaymentProviderException("error with payment provider", e);
             }
-        } else {
-            throw new IllegalArgumentException("payment method not supported");
-        }
     }
 
     private void updateWalletBalance(Wallet wallet, Long deltaAmountUnit) {

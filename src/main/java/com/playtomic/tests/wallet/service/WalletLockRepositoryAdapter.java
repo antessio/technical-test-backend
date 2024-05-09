@@ -18,7 +18,7 @@ public class WalletLockRepositoryAdapter implements WalletLockRepository {
     }
 
     @Override
-    public void upsertLock(Lock lock) {
+    public void insertLock(Lock lock) {
         springDataLockRepository.save(new LockEntity(
                 lock.getName(),
                 lock.getExpiresAt()

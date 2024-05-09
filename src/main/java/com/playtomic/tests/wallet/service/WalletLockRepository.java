@@ -6,7 +6,7 @@ import com.playtomic.tests.wallet.service.domain.Lock;
 
 public interface WalletLockRepository {
 
-    void upsertLock(Lock lock);
+    void insertLock(Lock lock);
 
     void deleteLock(String name);
 
