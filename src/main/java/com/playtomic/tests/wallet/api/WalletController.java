@@ -41,9 +41,9 @@ public class WalletController {
 
     
 
-    @RequestMapping("/")
-    void log() {
-        LOGGER.info("Logging from /");
+    @RequestMapping(value = "/wallet", method = RequestMethod.POST)
+    ResponseEntity<Wallet> createWallet() {
+        return ResponseEntity.ok(walletService.createWallet());
     }
 
     @RequestMapping(value = "/wallet/{walletId}/top-up", method = RequestMethod.POST)

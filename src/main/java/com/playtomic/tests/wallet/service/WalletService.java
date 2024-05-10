@@ -64,7 +64,7 @@ public class WalletService {
             try {
                 stripeService.charge(
                         walletTopUpCommand.creditCardNumber(),
-                        new BigDecimal(walletTopUpCommand.amountUnit()).divide(new BigDecimal(100), RoundingMode.UNNECESSARY));
+                        new BigDecimal(walletTopUpCommand.amountUnit()).divide(new BigDecimal(100), RoundingMode.UP));
             } catch (StripeAmountTooSmallException e) {
                 throw new PaymentProviderBadRequestException("top-up amount is too small", e);
             } catch (StripeServiceException e) {

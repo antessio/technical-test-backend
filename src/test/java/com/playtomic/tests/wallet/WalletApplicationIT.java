@@ -13,6 +13,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
@@ -80,7 +81,15 @@ public class WalletApplicationIT {
 	}
 
 	@Test
-	void shouldReturnWalletNotFound() {
+	void shouldReturnWalletNotFound() throws Exception {
+		// given
+		// when
+		ResultActions result = mvc.perform(get("/wallet/nonexisting")
+												   .contentType("application/json"));
+
+		// then
+		result
+				.andExpect(status().isNotFound());
 
 	}
 
@@ -108,7 +117,7 @@ public class WalletApplicationIT {
 	public void shouldReturnHTTP400IfAmountTooSmall() throws Exception {
 		// given
 		long initialBalance = 0L;
-		int amount = 100;
+		int amount = 10;
 		WalletId walletId = aWalletWithBalance(initialBalance);
 		stripeThrowsAnError(amount, new StripeAmountTooSmallException());
 		// when
@@ -161,6 +170,20 @@ public class WalletApplicationIT {
 		walletIsUnlocked(walletId);
 	}
 
+	@Test
+	void shouldCreateWallet() throws Exception {
+		// given
+		//when
+		ResultActions result = mvc.perform(post("/wallet")
+												   .contentType("application/json"));
+		// then
+		result
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.id").exists())
+				.andExpect(jsonPath("$.balanceAmountUnit").value(0));
+
+	}
+
 	private void isChargedOnStripe(int amount, String creditCardNumber) {
 		verify(stripeService).charge(eq(creditCardNumber), eq(new BigDecimal(amount / 100)));
 	}
@@ -181,7 +204,7 @@ public class WalletApplicationIT {
 	}
 
 	private void stripeThrowsAnError(int amount, RuntimeException whatever) {
-		when(stripeService.charge(any(), eq(new BigDecimal(amount / 100))))
+		when(stripeService.charge(any(), eq(new BigDecimal(amount).divide(new BigDecimal(100), RoundingMode.UP))))
 				.thenThrow(whatever);
 	}
 
